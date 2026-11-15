@@ -1,0 +1,38 @@
+{
+	"name": "dw_gold_diagnosticos_sql",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "sql_dw_hospital",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "GOLD"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "diagnostico_key",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "codigo_icd",
+				"type": "varchar"
+			},
+			{
+				"name": "descripcion_patologia",
+				"type": "nvarchar"
+			},
+			{
+				"name": "nivel_severidad",
+				"type": "varchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "gold",
+			"table": "dim_diagnostico"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

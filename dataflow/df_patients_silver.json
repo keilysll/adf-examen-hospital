@@ -8,6 +8,10 @@
 		"typeProperties": {
 			"sources": [
 				{
+					"dataset": {
+						"referenceName": "dw_bronze_patients_sql",
+						"type": "DatasetReference"
+					},
 					"name": "source1"
 				}
 			],
@@ -40,7 +44,9 @@
 				"          insurance_provider as string",
 				"     ),",
 				"     allowSchemaDrift: true,",
-				"     validateSchema: false) ~> source1",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source1",
 				"source1 derive(patient_id = toInteger(trim(patient_id)),",
 				"          full_name = trim(full_name),",
 				"          gender = iif(     isNull(gender) || trim(gender) == '',     toString(null()),     iif(         upper(trim(gender)) == 'M' || upper(trim(gender)) == 'MALE',         'Male',         iif(             upper(trim(gender)) == 'F' || upper(trim(gender)) == 'FEMALE',             'Female',             toString(null())         )     ) ),",

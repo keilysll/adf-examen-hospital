@@ -16,7 +16,7 @@
 				},
 				{
 					"dataset": {
-						"referenceName": "dw_silver_patients_sql",
+						"referenceName": "dw_gold_paciente_sql",
 						"type": "DatasetReference"
 					},
 					"name": "paciente"
@@ -77,6 +77,9 @@
 				},
 				{
 					"name": "select1"
+				},
+				{
+					"name": "filterKeys"
 				}
 			],
 			"scriptLines": [
@@ -94,14 +97,15 @@
 				"     query: 'SELECT *\\nFROM silver.admissions',",
 				"     format: 'query') ~> admissions",
 				"source(output(",
-				"          patient_id as integer,",
-				"          full_name as string,",
-				"          gender as string,",
-				"          date_of_birth as date,",
-				"          phone as string,",
-				"          email as string,",
-				"          address as string,",
-				"          insurance_provider as string",
+				"          paciente_key as integer,",
+				"          patient_id_bk as integer,",
+				"          nombre_completo as string,",
+				"          genero as string,",
+				"          fecha_nacimiento as date,",
+				"          rango_etario as string,",
+				"          correo_electronico as string,",
+				"          direccion as string,",
+				"          proveedor_seguro as string",
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
@@ -156,7 +160,7 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> fecha",
-				"select1, paciente lookup(select1@patient_id == patient_id_bk,",
+				"select1, paciente lookup(toInteger(patient_id) == toInteger(patient_id_bk),",
 				"     multiple: false,",
 				"     pickup: 'any',",
 				"     broadcast: 'auto')~> lookup2",
@@ -165,7 +169,7 @@
 				"     pickup: 'any',",
 				"     broadcast: 'auto')~> lookup3",
 				"lookup3, serviciocargo lookup(charge_type == tipo_cargo",
-				"     && payment_status == estado_pago,",
+				"     && upper(payment_status) == upper(estado_pago),",
 				"     multiple: false,",
 				"     pickup: 'any',",
 				"     broadcast: 'auto')~> lookup4",
@@ -190,7 +194,8 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select1",
-				"lookup5 sink(allowSchemaDrift: true,",
+				"lookup5 filter(!isNull(paciente_key) && !isNull(departamento_key) && !isNull(servicio_cargo_key)) ~> filterKeys",
+				"filterKeys sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          facturacion_key as long,",

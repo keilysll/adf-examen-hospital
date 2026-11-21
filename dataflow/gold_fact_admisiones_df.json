@@ -8,29 +8,61 @@
 		"typeProperties": {
 			"sources": [
 				{
+					"dataset": {
+						"referenceName": "dw_silver_admissions_sql",
+						"type": "DatasetReference"
+					},
 					"name": "admissions"
 				},
 				{
+					"dataset": {
+						"referenceName": "dw_silver_diagnoses_sql",
+						"type": "DatasetReference"
+					},
 					"name": "diagnoses"
 				},
 				{
+					"dataset": {
+						"referenceName": "dw_gold_paciente_sql",
+						"type": "DatasetReference"
+					},
 					"name": "paciente"
 				},
 				{
+					"dataset": {
+						"referenceName": "dw_gold_departamento_sql",
+						"type": "DatasetReference"
+					},
 					"name": "departamento"
 				},
 				{
+					"dataset": {
+						"referenceName": "dw_gold_diagnostico_sql",
+						"type": "DatasetReference"
+					},
 					"name": "diagnostico"
 				},
 				{
+					"dataset": {
+						"referenceName": "dw_gold_fecha_sql",
+						"type": "DatasetReference"
+					},
 					"name": "fechaIngreso"
 				},
 				{
+					"dataset": {
+						"referenceName": "dw_gold_fecha_sql",
+						"type": "DatasetReference"
+					},
 					"name": "fechaAlta"
 				}
 			],
 			"sinks": [
 				{
+					"dataset": {
+						"referenceName": "dw_gold_fact_admisiones_sql",
+						"type": "DatasetReference"
+					},
 					"name": "sink1"
 				}
 			],
@@ -64,6 +96,9 @@
 				},
 				{
 					"name": "derivedColumn1"
+				},
+				{
+					"name": "filterKeys"
 				}
 			],
 			"scriptLines": [
@@ -76,7 +111,10 @@
 				"          attending_doctor_id as integer",
 				"     ),",
 				"     allowSchemaDrift: true,",
-				"     validateSchema: false) ~> admissions",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     query: 'SELECT *\\nFROM silver.admissions',",
+				"     format: 'query') ~> admissions",
 				"source(output(",
 				"          diagnosis_id as integer,",
 				"          admission_id as integer,",
@@ -85,7 +123,10 @@
 				"          severity as string",
 				"     ),",
 				"     allowSchemaDrift: true,",
-				"     validateSchema: false) ~> diagnoses",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     query: 'SELECT *\\nFROM silver.diagnoses',",
+				"     format: 'query') ~> diagnoses",
 				"source(output(",
 				"          paciente_key as integer,",
 				"          patient_id_bk as integer,",
@@ -98,13 +139,17 @@
 				"          proveedor_seguro as string",
 				"     ),",
 				"     allowSchemaDrift: true,",
-				"     validateSchema: false) ~> paciente",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> paciente",
 				"source(output(",
 				"          departamento_key as integer,",
 				"          nombre_departamento as string",
 				"     ),",
 				"     allowSchemaDrift: true,",
-				"     validateSchema: false) ~> departamento",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> departamento",
 				"source(output(",
 				"          diagnostico_key as integer,",
 				"          codigo_icd as string,",
@@ -112,7 +157,9 @@
 				"          nivel_severidad as string",
 				"     ),",
 				"     allowSchemaDrift: true,",
-				"     validateSchema: false) ~> diagnostico",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> diagnostico",
 				"source(output(",
 				"          fecha_key as integer,",
 				"          fecha_completa as date,",
@@ -129,7 +176,9 @@
 				"          es_fin_de_semana as boolean",
 				"     ),",
 				"     allowSchemaDrift: true,",
-				"     validateSchema: false) ~> fechaIngreso",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> fechaIngreso",
 				"source(output(",
 				"          fecha_key as integer,",
 				"          fecha_completa as date,",
@@ -146,7 +195,9 @@
 				"          es_fin_de_semana as boolean",
 				"     ),",
 				"     allowSchemaDrift: true,",
-				"     validateSchema: false) ~> fechaAlta",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> fechaAlta",
 				"diagnoses aggregate(groupBy(admission_id),",
 				"     diagnosis_id_elegido = min(diagnosis_id)) ~> aggregate1",
 				"aggregate1, diagnoses join(aggregate1@admission_id == diagnoses@admission_id",
@@ -173,7 +224,7 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select1",
-				"select1, paciente lookup(patient_id == patient_id_bk,",
+				"select1, paciente lookup(toInteger(patient_id) == toInteger(patient_id_bk),",
 				"     multiple: false,",
 				"     pickup: 'any',",
 				"     broadcast: 'auto')~> lookup2",
@@ -206,10 +257,29 @@
 				"    1971,\r",
 				"    diagnostico_key\r",
 				")) ~> derivedColumn1",
-				"derivedColumn1 sink(allowSchemaDrift: true,",
+				"derivedColumn1 filter(!isNull(paciente_key) && !isNull(departamento_key) && !isNull(fecha_ingreso_key)) ~> filterKeys",
+				"filterKeys sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
+				"     input(",
+				"          admision_key as long,",
+				"          admission_id_bk as integer,",
+				"          paciente_key as integer,",
+				"          departamento_key as integer,",
+				"          diagnostico_key as integer,",
+				"          fecha_ingreso_key as integer,",
+				"          fecha_alta_key as integer,",
+				"          medico_id as integer,",
+				"          dias_estancia as integer,",
+				"          conteo_admisiones as integer",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
 				"     mapColumn(",
 				"          admission_id_bk = admission_id,",
 				"          paciente_key,",
@@ -219,8 +289,7 @@
 				"          fecha_alta_key,",
 				"          medico_id = attending_doctor_id,",
 				"          dias_estancia",
-				"     ),",
-				"     format: 'table') ~> sink1"
+				"     )) ~> sink1"
 			]
 		}
 	}

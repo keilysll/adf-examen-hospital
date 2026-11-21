@@ -80,6 +80,9 @@
 				},
 				{
 					"name": "filterKeys"
+				},
+				{
+					"name": "deriveFact"
 				}
 			],
 			"scriptLines": [
@@ -195,7 +198,11 @@
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select1",
 				"lookup5 filter(!isNull(paciente_key) && !isNull(departamento_key) && !isNull(servicio_cargo_key)) ~> filterKeys",
-				"filterKeys sink(allowSchemaDrift: true,",
+				"filterKeys derive(billing_id_bk = billing_id,",
+				"          admission_id_bk = admission_id,",
+				"          fecha_pago_key = fecha_key,",
+				"          monto_facturado = amount) ~> deriveFact",
+				"deriveFact sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          facturacion_key as long,",
@@ -217,13 +224,13 @@
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",
 				"     mapColumn(",
-				"          billing_id_bk = billing_id,",
-				"          admission_id_bk = admission_id,",
+				"          billing_id_bk,",
+				"          admission_id_bk,",
 				"          paciente_key,",
 				"          departamento_key,",
 				"          servicio_cargo_key,",
-				"          fecha_pago_key = fecha_key,",
-				"          monto_facturado = amount",
+				"          fecha_pago_key,",
+				"          monto_facturado",
 				"     )) ~> sink1"
 			]
 		}
